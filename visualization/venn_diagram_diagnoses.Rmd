@@ -1,0 +1,177 @@
+---
+title: "Untitled"
+output: html_document
+date: "2025-02-03"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r setup, include=FALSE}
+library(readxl)
+library(dplyr)
+library(tidyverse)
+library(VennDiagram)
+library(RColorBrewer)
+install.packages("ggvenn")
+library(extrafont)
+library(grid)
+library(eulerr)
+```
+
+```{r}
+# load the data
+df_metadata <- read.csv('P:/3022054.01/projects/linschl/data/full_metadata_rescaled_20241210.csv')
+df_mindset <- read.csv('P:/3022054.01/projects/linschl/data/mindset/mindset_diagnoses_20240319.csv')
+df_become <- read.csv('P:/3022054.01/projects/linschl/data/become/become_diagnoses_20250708.csv')
+df_strat <- read.csv('P:/3022054.01/projects/linschl/data/stratify/stratify_dem_diag_20241210.csv') 
+
+# select only subjects that are in the normative modeling sample
+df_strat <- merge(df_strat, df_metadata, by = "subj_id")
+
+# map old and new subject IDs in become
+mapping <- read.csv('P:/3022054.01/projects/linschl/data/become/subject_id_mapping.csv')
+mapping <- mapping %>% rename(subj_id = code, old_ID = subj_id)
+
+df_become <- df_become %>%
+  left_join(mapping %>% select(subj_id, old_ID), by = "subj_id")
+
+df_become <-  df_become %>% rename(new_ID = subj_id, subj_id = old_ID)
+df_become <- merge(df_become, df_metadata, by = "subj_id")
+```
+
+```{r sets, echo=TRUE}
+# set the data
+
+dataset <- "mindset"
+
+if (dataset == "mindset") {
+  set1 <- which(df_mindset$MoodDisFinal == 1)  # Mood Disorder
+  set2 <- which(df_mindset$AnxDisFinal == 1)   # Anxiety Disorder
+  set3 <- which(df_mindset$Conclusie_ADHD_Diagnose == 1) # ADHD
+  set4 <- which(df_mindset$Conclusie_ASD_Diagnose == 1)  # ASD
+  set5 <- which(df_mindset$VerslavingFinal == 1)  # AUD
+  #myCol <- c("#648fff", "#dc267f",  "#785ef0", "#fe6100", "#ffb000")
+  myCol <- c("#8DA0CB","#E78AC3","#66C2A5","#A6D854","#FC8D62")
+  filename = "P:/3022054.01/projects/linschl/results/figures/diagnoses/mindset_venn.png"
+  x = list(
+  "Mood Disorder" = set1, 
+  "Anxiety Disorder" = set2, 
+  "ADHD" = set3, 
+  "Autism Spectrum Disorder" = set4,
+  "Alcohol Use Disorder" = set5
+)
+} else if (dataset == "become") {
+  set1 <- which(df_become$MoodDisCurrent == 1)  # Mood Disorder
+  set2 <- which(df_become$AnxDisCurrent == 1)   # Anxiety Disorder
+  set3 <- which(df_become$Verslaving == 1)
+  myCol <- c("#8DA0CB","#E78AC3","#FC8D62")
+  filename = "P:/3022054.01/projects/linschl/results/figures/diagnoses/become_venn.png"
+  x = list(
+  "Mood Disorder" = set1, 
+  "Anxiety Disorder" = set2,
+  "Verslaving" = set3
+)
+} else if (dataset == "stratify") { 
+  #set1 <- which(df_strat$diagnosis_ADHD == 1)  # ADHD
+  set2 <- which(df_strat$diagnosis_AN == 1)   # anorexia nervosa
+  set3 <- which(df_strat$diagnosis_AUD == 1) # alcohol use disorder
+  set4 <- which(df_strat$diagnosis_BN == 1)  # bulimia nervosa
+  set5 <- which(df_strat$diagnosis_MDD == 1) # Major depression
+  set6 <- which(df_strat$diagnosis_Psychosis == 1)  # psychosis
+  myCol <- c("#B3B3B3", "#FC8D62", "#B3B3B3", "#8DA0CB",  "#FFD92F") 
+  filename = "P:/3022054.01/projects/linschl/results/figures/diagnoses/stratify_bar.png"
+}
+
+```
+
+```{r}
+# plot the venn diagrams
+x = x
+
+venn_plot <- venn.diagram(
+        x = x,  
+        filename = filename,  # Prevent saving to file
+        
+        # Output features
+        imagetype = "png",
+        height = 1200,  
+        width = 1200,  
+        resolution = 400,  
+        compression = "lzw",
+        
+        # Circles
+        lwd = 2,
+        lty = 'blank',
+        fill = myCol,
+        
+        # Numbers
+        cex = 0.7,  
+        fontfamily = "Calibri Light",
+        
+        # Set names
+        cat.cex = 0,  
+        cat.default.pos = "outer",
+        cat.pos = c(0, 72, 144, 216, 288),
+        #cat.pos = c(0,72,144),
+        #cat.dist = c(0.08, 0.08, 0.1),
+        cat.dist = c(0.08, 0.08, 0.1, 0.1, 0.1),
+        cat.just = list(c(0.5, 0.5), c(0.5, 0.5), c(0.5, 0.5), c(0.5, 0.5), c(0.5, 0.5)),
+        #cat.just = list(c(0.5, 0.5), c(0.5, 0.5), c(0.5,0.5)),
+        cat.fontfamily = "Calibri Light"
+)
+
+venn_plot
+```
+
+
+## Stratify barplot
+```{r stratify, echo=TRUE}
+# Diagnosis columns
+#dev.off()
+diagnosis_columns <- c("diagnosis_AN", "diagnosis_AUD",
+                       "diagnosis_MDD", "diagnosis_Psychosis")
+
+# Color palette
+myCol <- c("#8DA0CB", "#FC8D62", "#B3B3B3","#FFD92F") 
+
+# Sum of 1's per diagnosis
+diagnosis_counts <- colSums(df_strat[diagnosis_columns] == 1)
+diagnosis_counts_sorted <- sort(diagnosis_counts, decreasing = TRUE)
+
+labels <- c(
+  "Major\nDepressive\nDisorder", 
+  "Alcohol Use\nDisorder", 
+  "Psychosis", 
+  "Anorexia\nNervosa"
+)
+
+# Output PNG settings
+png("P:/3022054.01/projects/linschl/results/figures/diagnoses/diagnosis_barplot.png", width = 1600, height = 1600, res = 300)
+
+# Set font
+par(family = "Calibri Light")
+par(mar = c(7, 4, 4, 2))
+
+# Barplot
+p <- barplot(
+  diagnosis_counts_sorted,
+  main = "Diagnoses STRATIFY", 
+  ylab = "Frequency", 
+  col = myCol, 
+  border = NA,
+  cex.names = 0.8,           # Increase font size of axis labels
+  cex.axis = 1.2,            # Increase font size of y-axis tick labels
+  cex.main = 1.5,            # Increase font size of title
+  cex.lab = 1,             # Increase font size of axis titles
+  ylim = c(0, 30),           # Set y-axis limit
+   names.arg = rep("", length(diagnosis_counts_sorted))
+)
+
+# Close and save the PNG file
+dev.off()
+message("Device closed")
+```
+
+

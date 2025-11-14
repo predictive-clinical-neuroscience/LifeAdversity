@@ -1,0 +1,281 @@
+---
+title: "Mindset_imputation"
+output: html_document
+date: "2024-03-08"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+library(mice)
+library(VIM)
+library(tidyverse)
+library(dplyr)
+library(conflicted)
+```
+
+## 1 - load the data
+```{r}
+df_mindset <- read.csv("P:/3022000.05/linschl/data/mindset_diagnoses_20240319.csv")
+```
+
+## 2 - look at the missing data pattern
+```{r, echo=FALSE}
+## look at the missing data pattern
+aggr_plot <- aggr(df_mindset, col=c('navyblue','red'), numbers=TRUE, sortVars=TRUE, labels=names(data), cex.axis=.7, gap=3, ylab=c("Histogram of missing data","Pattern"))
+md.pattern(df_mindset,rotate.names = TRUE)
+```
+## 3 - Identify cases with missing freq values despite having binary and sum scores 
+```{r, echo=FALSE}
+# Identify cases where freq is NaN, but binary or sum are not missing
+cases_sa <- df_mindset[is.na(df_mindset$SA_freq) & (!is.na(df_mindset$SA) | !is.na(df_mindset$SA_sum)), ]
+cases_psychab <- df_mindset[is.na(df_mindset$PsychAb_freq) & (!is.na(df_mindset$PsychAb) | !is.na(df_mindset$PsychAb_sum)), ]
+cases_bully <- df_mindset[is.na(df_mindset$Bullying_freq) & (!is.na(df_mindset$Bullying)), ]
+
+#caes_emneg <- df_mindset[is.na(df_mindset$EmNeg_freq) & (!is.na(df_mindset$EmNeg) | !is.na(df_mindset$EmNeg_sum)), ]
+#cases_physab <- df_mindset[is.na(df_mindset$PhysAb_freq) & (!is.na(df_mindset$PhysAb) | !is.na(df_mindset$PhysAb_sum)), ]
+
+
+# code respective sum scores as missing 
+df_mindset$SA_sum[is.na(df_mindset$SA_freq)] <- NA
+df_mindset$PsychAb_sum[is.na(df_mindset$PsychAb_freq)] <- NA
+
+```
+
+
+## 4 - set up the prediction matrix and define variables to be imputed
+```{r, echo=FALSE}
+#basic setup
+init = mice(df_mindset, maxit=0) 
+meth = init$method
+
+
+# set up prediction matrix,
+exclude_cols <- c("subj_id", "Group", "MRI_date","CT","CT_sum","EmNeg_sum", "EmNeg", "PsychAb_sum", "PsychAb" ,"PhysAb_sum","PhysAb", "SA", "SA_sum", "Bullying", "CLE", "CLE_sum",  "eTIV", "dataset", "site", "sex_string", "DOB", "diagnosis")
+pred <- make.predictorMatrix(df_mindset)
+pred[, names(df_mindset) %in% exclude_cols] <- 0
+
+
+# to skip a variable from imputation:
+meth[c("subj_id", "Group", "DOB", "MRI_date", "CT", 
+"CT_sum", "CLE", "CLE_sum", "CLE_parents_death", "eTIV", "dataset", "site", "diagnosis", 
+"age", "sex", "sex_string", "UniDepPastFinal", 
+"DysCurrFinal", "BipLifetimeFinal", "CurrDepEpiFinal", 
+"CurrManEpiFinal", "PanicDisFinal", "AgoraPhFinal", 
+"SocPhFinal", "SpecPhFinal", "OCDFinal", "PTSDFinal", 
+"GADFinal", "AnxNOSFinal", "MoodDisFinal", "AnxDisFinal", 
+"VerslavingFinal", "Conclusie_ADHD_Diagnose", "Conclusie_ASD_Diagnose", "EmNeg_sum", "EmNeg", "PsychAb_sum","PsychAb", "PhysAb_sum", "PhysAb", "SA", "SA_sum", "Bullying")]=""
+#print(meth)
+
+```
+## 5 - main imputation
+```{r, echo=FALSE}
+
+# OPTION 2: select subjects to be excluded by vals
+data <- df_mindset
+exclude <- with(df_mindset, ifelse(!is.na(SA), SA == 1 & is.na(SA_freq), FALSE)|
+                                  ifelse(!is.na(PsychAb), PsychAb == 1 & is.na(PsychAb_freq), FALSE)|
+                                  ifelse(!is.na(Bullying), Bullying == 1 & is.na(Bullying_freq), FALSE))
+
+excluded_rows <- as.logical(exclude)
+
+where_vals <- make.where(data)
+where_vals[excluded_rows, ] <- FALSE
+
+### imputation ### 
+set.seed(103)
+data.ini <- mice(df_mindset, maxit = 0)
+imp = mice(df_mindset, method=meth, ignore = excluded_rows, where = where_vals, predictorMatrix=pred, m=10, maxit = 20, remove.collinear = FALSE, print = FALSE)
+plot(imp)
+pooled_main <- complete(imp, "long")
+
+```
+
+## 6 - second imputation preparation
+```{r, echo=FALSE}
+# run one imputation per imputed dataset
+# min of SA, Psych_Ab and Bullying_freq = 1
+
+imp1_data <- pooled_main %>% dplyr::filter(.imp == 1)
+imp2_data <- pooled_main %>% dplyr::filter(.imp == 2)
+imp3_data <- pooled_main %>% dplyr::filter(.imp == 3)
+imp4_data <- pooled_main %>% dplyr::filter(.imp == 4)
+imp5_data <- pooled_main %>% dplyr::filter(.imp == 5)
+imp6_data <- pooled_main %>% dplyr::filter(.imp == 6)
+imp7_data <- pooled_main %>% dplyr::filter(.imp == 7)
+imp8_data <- pooled_main %>% dplyr::filter(.imp == 8)
+imp9_data <- pooled_main %>% dplyr::filter(.imp == 9)
+imp10_data <- pooled_main %>% dplyr::filter(.imp == 10)
+
+
+## set up the prediction matrix and define variables to be imputed
+#basic setup
+init1 = mice(imp1_data, maxit=0) 
+meth1 = init1$method
+
+
+# set up prediction matrix,
+exclude_cols <- c("subj_id", "Group", "MRI_date","CT","CT_sum","EmNeg_sum", "EmNeg", "PsychAb_sum", "PsychAb" ,"PhysAb_sum","PhysAb", "SA", "SA_sum", "Bullying", "CLE", "CLE_sum",  "eTIV", "dataset", "site", "sex_string", "DOB", "diagnosis", ".id", ".imp")
+pred1 <- make.predictorMatrix(imp1_data) # can be used for all runs?
+pred1[, names(imp1_data) %in% exclude_cols] <- 0
+
+
+# to skip a variable from imputation:
+meth1[c("subj_id", "Group", "DOB", "MRI_date", "CT", 
+"CT_sum", "CLE", "CLE_sum", "CLE_parents_death", "eTIV", "dataset", "site", "diagnosis", 
+"age", "sex", "sex_string", "UniDepPastFinal", 
+"DysCurrFinal", "BipLifetimeFinal", "CurrDepEpiFinal", 
+"CurrManEpiFinal", "PanicDisFinal", "AgoraPhFinal", 
+"SocPhFinal", "SpecPhFinal", "OCDFinal", "PTSDFinal", 
+"GADFinal", "AnxNOSFinal", "MoodDisFinal", "AnxDisFinal", 
+"VerslavingFinal", "Conclusie_ADHD_Diagnose", "Conclusie_ASD_Diagnose", "EmNeg_sum", "EmNeg", "PsychAb_sum","PsychAb", "PhysAb_sum", "PhysAb", "SA", "SA_sum", "Bullying", ".id", ".imp")]=""
+#print(meth1)
+
+```
+## 7 - second imputation of imputed datasets
+```{r, echo=FALSE}
+
+# set conditions 
+post <- init1$post
+post["SA_freq"] <- "imp[[j]][, i] <- squeeze(imp[[j]][, i], c(1, 5))"
+post["Bullying_freq"] <- "imp[[j]][, i] <- squeeze(imp[[j]][, i], c(1, 5))"
+post["PsychAb_freq"] <- "imp[[j]][, i] <- squeeze(imp[[j]][, i], c(1, 5))"
+
+imp1 <- mice(imp1_data, method=meth1, predictorMatrix=pred1, post = post, m=1, maxit = 10, remove.collinear = FALSE, print = FALSE )
+imp1_df <- complete(imp1, "long")
+
+imp2 <- mice(imp2_data, method=meth1, predictorMatrix=pred1, post = post, m=1, maxit = 10, remove.collinear = FALSE, print = FALSE )
+imp2_df <- complete(imp2, "long")
+
+imp3 <- mice(imp3_data, method=meth1, predictorMatrix=pred1, post = post, m=1, maxit = 10, remove.collinear = FALSE, print = FALSE )
+imp3_df <- complete(imp3, "long")
+
+imp4 <- mice(imp4_data, method=meth1, predictorMatrix=pred1, post = post, m=1, maxit = 10, remove.collinear = FALSE, print = FALSE )
+imp4_df <- complete(imp4, "long")
+
+imp5 <- mice(imp5_data, method=meth1, predictorMatrix=pred1, post = post, m=1, maxit = 10, remove.collinear = FALSE, print = FALSE )
+imp5_df <- complete(imp5, "long")
+
+imp6 <- mice(imp6_data, method=meth1, predictorMatrix=pred1, post = post, m=1, maxit = 10, remove.collinear = FALSE, print = FALSE )
+imp6_df <- complete(imp6, "long")
+
+imp7 <- mice(imp7_data, method=meth1, predictorMatrix=pred1, post = post, m=1, maxit = 10, remove.collinear = FALSE, print = FALSE )
+imp7_df <- complete(imp7, "long")
+
+imp8 <- mice(imp8_data, method=meth1, predictorMatrix=pred1, post = post, m=1, maxit = 10, remove.collinear = FALSE, print = FALSE )
+imp8_df <- complete(imp8, "long")
+
+imp9 <- mice(imp9_data, method=meth1, predictorMatrix=pred1, post = post, m=1, maxit = 10, remove.collinear = FALSE, print = FALSE )
+imp9_df <- complete(imp9, "long")
+
+imp10 <- mice(imp10_data, method=meth1, predictorMatrix=pred1, post = post, m=1, maxit = 10, remove.collinear = FALSE, print = FALSE )
+imp10_df <- complete(imp10, "long")
+```
+
+
+
+## 8 - Calculate sum scores and binary scores
+```{r, echo=FALSE}
+
+# combine all datasets into one for the next steps
+# identifyer = .imp.1 
+pooled_data <- rbind(imp1_df, imp2_df, imp3_df, imp4_df, imp5_df, imp6_df, imp7_df, imp8_df, imp9_df, imp10_df)
+
+# EmNEg
+pooled_data_2 <- pooled_data %>%
+  mutate(EmNeg = replace(EmNeg, is.na(EmNeg) & EmNeg_freq > 0, 1),
+         EmNeg = replace(EmNeg, is.na(EmNeg) & EmNeg_freq == 0, 0),
+         EmNeg_sum = replace(EmNeg_sum, is.na(EmNeg_sum) & EmNeg_freq == 0, 0),
+         EmNeg_sum = replace(EmNeg_sum, is.na(EmNeg_sum) & EmNeg_freq %in% 1, 1),
+         EmNeg_sum = replace(EmNeg_sum, is.na(EmNeg_sum) & EmNeg_freq %in% 2:5, 2),
+         
+         SA = replace(SA, is.na(SA) & SA_freq > 0, 1),
+         SA = replace(SA, is.na(SA) & SA_freq == 0, 0),
+         SA_sum = replace(SA_sum, is.na(SA_sum) & SA_freq == 0, 0),
+         SA_sum = replace(SA_sum, is.na(SA_sum) & SA_freq %in% 1:2, 1),
+         SA_sum = replace(SA_sum, is.na(SA_sum) & SA_freq %in% 3:5, 2),
+         
+         PhysAb = replace(PhysAb, is.na(PhysAb) & PhysAb_freq > 0, 1),
+         PhysAb = replace(PhysAb, is.na(PhysAb) & PhysAb_freq == 0, 0),
+         PhysAb_sum = replace(PhysAb_sum, is.na(PhysAb_sum) & PhysAb_freq == 0, 0),
+         PhysAb_sum = replace(PhysAb_sum, is.na(PhysAb_sum) & PhysAb_freq %in% 1:2, 1),
+         PhysAb_sum = replace(PhysAb_sum, is.na(PhysAb_sum) & PhysAb_freq %in% 3:5, 2),
+         
+         PsychAb = replace(PsychAb, is.na(PsychAb) & PsychAb_freq > 0, 1),
+         PsychAb = replace(PsychAb, is.na(PsychAb) & PsychAb_freq == 0, 0),
+         PsychAb_sum = replace(PsychAb_sum, is.na(PsychAb_sum) & PsychAb_freq == 0, 0),
+         PsychAb_sum = replace(PsychAb_sum, is.na(PsychAb_sum) & PsychAb_freq %in% 1:2, 1),
+         PsychAb_sum = replace(PsychAb_sum, is.na(PsychAb_sum) & PsychAb_freq %in% 3:5, 2),
+         
+         Bullying = replace(Bullying, is.na(Bullying) & Bullying_freq > 0, 1),
+         Bullying = replace(Bullying, is.na(Bullying) & Bullying_freq == 0, 0),
+         
+         CT = ifelse(is.na(CT) & (EmNeg > 0 | PsychAb > 0 | PhysAb > 0 | SA > 0), 1, ifelse(is.na(CT), 0, CT)),
+         CT_sum = ifelse(is.na(CT_sum), EmNeg_sum + SA_sum + PhysAb_sum + PsychAb_sum, CT_sum),
+         CLE = ifelse(is.na(CLE) & (CLE_parents_death > 0 | CLE_siblings_death > 0 | CLE_divorce > 0 | CLE_orphanage > 0 | CLE_adopted > 0), 1, ifelse(is.na(CT), 0, CT)))
+
+```
+
+## 9 - repeat missing data pattern analysis
+```{r, echo=FALSE}
+## look at the missing data pattern
+aggr_plot_imp <- aggr(pooled_data_2, col=c('navyblue','red'), numbers=TRUE, sortVars=TRUE, labels=names(data), cex.axis=.7, gap=3, ylab=c("Histogram of missing data","Pattern"))
+md.pattern(pooled_data_2,rotate.names = TRUE)
+```
+
+
+## 10 - Sanity check imputed data
+```{r, echo=FALSE}
+
+# check min and max of all scores
+vars <- c("CT", "CT_sum", "EmNeg","EmNeg_sum", "EmNeg_freq", "PhysAb","PhysAb_sum", "PhysAb_freq","PsychAb", "PsychAb_sum", "PsychAb_freq", "SA","SA_sum", "SA_freq", "CLE_siblings_death","CLE", "CLE_divorce", "CLE_orphanage", "CLE_adopted", "CLE_fosterhome","Bullying", "Bullying_freq")
+
+min_max_df <- pooled_data_2 %>%
+  group_by(.imp.1) %>%
+  summarize(across(all_of(vars), list(min = min, max = max)))
+
+
+# Check for cases where freq is > 0 while binary variable == 0, and cases where freq is < 1 while binary variable == 1
+# EmNeg
+pooled_data_2[pooled_data_2$EmNeg_freq > 0 & pooled_data_2$EmNeg == 0, ]
+pooled_data_2[pooled_data_2$EmNeg_freq < 1 & pooled_data_2$EmNeg == 1, ]
+
+# PsychAb
+pooled_data_2[pooled_data_2$PsychAb_freq > 0 & pooled_data_2$PsychAb == 0, ]
+pooled_data_2[pooled_data_2$PsychAb_freq < 1 & pooled_data_2$PsychAb == 1, ]
+
+# PhysAb
+pooled_data_2[pooled_data_2$PhysAb > 0 & pooled_data_2$PhysAb == 0, ]
+pooled_data_2[pooled_data_2$PhysAb < 1 & pooled_data_2$PhysAb == 1, ]
+
+# SA
+pooled_data_2[pooled_data_2$SA_freq > 0 & pooled_data_2$SA == 0, ]
+pooled_data_2[pooled_data_2$SA_freq < 1 & pooled_data_2$SA == 1, ]
+
+# Bullying
+pooled_data_2[pooled_data_2$Bullying_freq > 0 & pooled_data_2$Bullying == 0, ]
+pooled_data_2[pooled_data_2$Bullying_freq < 1 & pooled_data_2$Bullying == 1, ]
+```
+
+
+## 10 - save the datasets
+```{r, echo=FALSE}
+# subset and save the first imputed dataset as main dataframe
+Mindset_main_imp <- subset(pooled_data_2, .imp.1 == 1)
+# Delete the first 4 columns
+Mindset_main_imp <- Mindset_main_imp[, -c(1:4)]
+
+write.csv(Mindset_main_imp, "Mindset_main_imp_20240326.csv", row.names = FALSE)
+
+
+# save all imputed dataframes for sensitivity analyses
+Mindset_full_imp <- pooled_data_2
+# Delete the first 2 columns
+Mindset_full_imp <- Mindset_full_imp[, -c(1:2)]
+
+write.csv(Mindset_full_imp, "Mindset_full_imp_20240326.csv", row.names = FALSE)
+```
+

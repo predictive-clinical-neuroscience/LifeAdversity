@@ -1,0 +1,145 @@
+---
+title: "Untitled"
+output: html_document
+date: "2024-11-21"
+---
+
+
+```{r setup, include=FALSE}
+library(readxl)
+library(dplyr)
+library(tidyverse)
+library(lavaan)
+library(conflicted)
+#install.packages("psych")
+library(psych)
+#install.packages("semTools")
+library(semTools)
+
+```
+
+## LOAD THE DATA
+```{r}
+df_mindset <- read.csv("P:/3022054.01/projects/linschl/data/mindset/mindset_validation_clean_20241028.csv")
+#df_hbs <- read.csv("P:/3022000.05/linschl/data/hbs/EFA/hbs_validation_run8_20241218.csv")
+#df_img <-read.csv("P:/3022054.01/projects/linschl/data/imagen/imagen_validation_all_20241218.csv")
+#df_strat <-read.csv("P:/3022054.01/projects/linschl/data/stratify/stratify_validation_20241218.csv")
+
+# combine imagen and stratify
+common_cols <- intersect(names(df_img), names(df_strat))
+df_img <- df_img[, common_cols]
+df_img_str <- rbind(df_img, df_strat)
+
+```
+
+
+## MINDSET 
+```{r}
+home_dir <- '/3022054.01/projects/linschl/data/mindset/EFA/'
+#var.names <- colnames(df_mindset)[c(3, 5:14,16:20,44:55,65:67)]
+var.names <- colnames(df_mindset)[c(3, 5:14,16:20,44:46,65:67)] # excluding cognition (BRIEF-A)
+
+
+fit <- fa(df_mindset[,var.names], nfactors = 3, fm = "ml", rotate = "oblimin")
+print(fit)
+
+# Scree plot and parallel analysis
+fa.parallel(df_mindset[,var.names], fa = "fa", n.iter = 100, nfactors = 6, fm = "ml")  
+eigenvalues <- fit$values
+
+# Create a Scree Plot for the first 6 factors
+plot(
+  eigenvalues[1:6],   # Only plot the first 6 eigenvalues
+  type = "b",         # Line and points plot
+  xlab = "Factor Number", 
+  ylab = "Eigenvalue", 
+  main = "Scree Plot (First 6 Factors)",
+  pch = 19,           # Solid circles for points
+  col = "blue"        # Line and points color
+)
+
+# Add a horizontal line at 1 (Kaiser criterion)
+abline(h = 1, col = "red", lty = 2)
+
+
+###  save factor scores and loadings
+scores <- as.data.frame(fit$scores)
+scores$subj_id = df_mindset$subj_id
+scores$index = df_mindset$index
+
+
+write.csv(fit$loadings, file.path('/3022054.01/projects/linschl/results/EFA/mindset_loadings_all_nocogn.csv'))
+write.csv(scores, file.path('/3022054.01/projects/linschl/results/EFA/mindset_scores_all_nocogn_20250417.csv'))
+```
+
+## IMAGEN & STRATIFY
+```{r}
+var.names <- colnames(df_img_str)[c(2:40)]
+
+# EFA
+fit <- fa(df_img_str[,var.names], nfactors = 3, fm = "ml", rotate = "oblimin", max.iter = 5000)
+print(fit)
+
+# Scree plot and parallel analysis
+fa.parallel(df_img_str[,var.names], fa = "fa", n.iter = 5000, nfactors = 6, fm = "ml")  
+eigenvalues <- fit$values
+
+
+# Create a Scree Plot for the first 6 factors
+plot(
+  eigenvalues[1:6],   # Only plot the first 6 eigenvalues
+  type = "b",         # Line and points plot
+  xlab = "Factor Number", 
+  ylab = "Eigenvalue", 
+  main = "Scree Plot (First 6 Factors)",
+  pch = 19,           # Solid circles for points
+  col = "blue"        # Line and points color
+)
+
+# Add a horizontal line at 1 (Kaiser criterion)
+abline(h = 1, col = "red", lty = 2)
+
+
+###  save factor scores and loadings
+scores <- as.data.frame(fit$scores)
+scores$subj_id = df_img_str$subj_id
+scores$dataset
+scores$index = df_img_str$index
+
+
+write.csv(fit$loadings, file.path('P:/3022054.01/projects/linschl/results/EFA/imagen_3f_loadings_all.csv'))
+write.csv(scores, file.path('P:/3022054.01/projects/linschl/results/EFA/img_str_scores_all_20250415.csv'))
+```
+
+
+## HBS
+```{r}
+home_dir <- 'P:/3022000.05/linschl/data/hbs/EFA/'
+var.names <- colnames(df_hbs)[c(5:17)]
+fit <- fa(df_hbs[,var.names], nfactors = 4, fm = "ml", rotate = "oblimin")
+print(fit)
+
+# Scree plot and parallel analysis
+fa.parallel(df_hbs[,var.names], fa = "fa", n.iter = 100, nfactors = 6, fm = "ml")  
+eigenvalues <- fit$values
+
+# Create a Scree Plot for the first 6 factors
+plot(
+  eigenvalues[1:6],   # Only plot the first 6 eigenvalues
+  type = "b",         # Line and points plot
+  xlab = "Factor Number", 
+  ylab = "Eigenvalue", 
+  main = "Scree Plot (First 6 Factors)",
+  pch = 19,           # Solid circles for points
+  col = "blue"        # Line and points color
+)
+
+# Add a horizontal line at 1 (Kaiser criterion)
+abline(h = 1, col = "red", lty = 2)
+
+write.csv(fit$loadings, file.path('P:/3022000.05/linschl/results/EFA/hbs_2f_loadings.csv'))
+```
+
+
+
+

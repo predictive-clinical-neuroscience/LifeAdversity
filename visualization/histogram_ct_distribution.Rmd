@@ -1,0 +1,204 @@
+---
+title: "CT_standardized_histograms"
+output: html_document
+date: "2025-05-09"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r setup, include=FALSE}
+library(readxl)
+library(dplyr)
+library(tidyverse)
+library(cowplot)
+library(extrafont)
+```
+
+# Import the data used in run_8
+```{r}
+df_all <- read.csv2("P:/3022054.01/projects/linschl/data/full_metadata_rescaled_20241210.csv", sep=',')
+
+df_mindset <- df_all[df_all$dataset == "MIND_Set", ]
+df_become <- df_all[df_all$dataset == "BECOME", ]
+df_imagen <- df_all[df_all$dataset == "IMAGEN", ]
+df_stratify <- df_all[df_all$dataset == "STRATIFY", ]
+df_hbs <- df_all[df_all$dataset == "HBS", ]
+
+
+# List of datasets and their labels
+datasets <- list(
+  "HBS" = df_hbs,
+  "IMAGEN" = df_imagen,
+  "BeCOME" = df_become,
+  "MIND-Set" = df_mindset,
+  "Stratify" = df_stratify
+)
+
+```
+
+```{r}
+# EMOTIONAL NEGLECT
+
+plots <- list()
+
+for (name in names(datasets)) {
+  plots[[name]] <- ggplot(datasets[[name]], aes(x = as.numeric(sexual_abuse_scaled))) +
+    geom_bar(
+      aes(y = stat(count / sum(count))),
+      fill = "darkgray",   # Light gray bars
+      color = "white"       # White borders
+    ) +
+    labs(x = paste("sexual Abuse", name), y = "Proportion") +
+    scale_x_continuous(expand = expansion(mult = c(0,.1)), breaks = seq(0, 1, 0.25), limits = c(-0.125, 1.125)) +  
+    scale_y_continuous(expand = expansion(mult = c(0, .1)), limits = c(0, 1)) + 
+    theme(
+      panel.background = element_blank(),
+      panel.grid = element_blank(),
+      axis.line = element_line(color = "black"),  # Corrected placement of '+'
+      text = element_text(family = "Calibri Light", size = 22),   
+      axis.title = element_text(size = 22),                            
+      axis.text = element_text(size = 22)
+    )
+  
+  # Save the plot with dynamic filename and 300 dpi
+  ggsave(
+    filename = paste0("P:/3022054.01/projects/linschl/results/figures/CTQ_NEMESIS_histograms/", name, "_SA.png"),
+    plot = plots[[name]],
+    dpi = 300,
+    width = 6,   # Adjust width (in inches)
+    height = 5   # Adjust height (in inches)
+  )
+}
+
+#plots$HBS
+#plots$IMAGEN
+#plots$BeCOME
+#plots$MIND-Set
+#plots$Stratify
+```
+
+```{r}
+# EMOTIONAL ABUSE
+
+plots <- list()
+
+for (name in names(datasets)) {
+  plots[[name]] <- ggplot(datasets[[name]], aes(x = as.numeric(emotional_abuse_scaled))) +
+    geom_bar(
+      aes(y = stat(count / sum(count))),
+      fill = "darkgray",   # Light gray bars
+      color = "white"       # White borders
+    ) +
+    labs(x = paste("Emotional Abuse", name), y = "Proportion") +
+    scale_x_continuous(expand = expansion(mult = c(0,.1)), breaks = seq(0, 1, 0.25), limits = c(-0.125, 1.125)) +  
+    scale_y_continuous(expand = expansion(mult = c(0, .1)), limits = c(0, 0.65)) + 
+    theme(
+      panel.background = element_blank(),
+      panel.grid = element_blank(),
+      axis.line = element_line(color = "black"),  # Corrected placement of '+'
+      text = element_text(family = "Calibri Light", size = 16),   
+      axis.title = element_text(size = 16),                            
+      axis.text = element_text(size = 16) 
+    )
+  
+  # Save the plot with dynamic filename and 300 dpi
+  ggsave(
+    filename = paste0("P:/3022054.01/projects/linschl/results/figures/CTQ_NEMESIS_histograms/", name, "_EA.png"),
+    plot = plots[[name]],
+    dpi = 300,
+    width = 6,   # Adjust width (in inches)
+    height = 5   # Adjust height (in inches)
+  )
+}
+
+#plots$HBS
+#plots$IMAGEN
+#plots$BeCOME
+#plots$MIND-Set
+#plots$Stratify
+```
+
+```{r}
+# PHYSICAL ABUSE
+
+plots <- list()
+
+for (name in names(datasets)) {
+  plots[[name]] <- ggplot(datasets[[name]], aes(x = as.numeric(physical_abuse_scaled))) +
+    geom_bar(
+      aes(y = stat(count / sum(count))),
+      fill = "darkgray",   # Light gray bars
+      color = "white"       # White borders
+    ) +
+    labs(x = paste("Physical Abuse", name), y = "Proportion") +
+    scale_x_continuous(expand = expansion(mult = c(0,.1)), breaks = seq(0, 1, 0.25), limits = c(-0.125, 1.125)) +  
+    scale_y_continuous(expand = expansion(mult = c(0, .1)), limits = c(0, 0.87)) + 
+    theme(
+      panel.background = element_blank(),
+      panel.grid = element_blank(),
+      axis.line = element_line(color = "black"),  # Corrected placement of '+'
+      text = element_text(family = "Calibri Light", size = 16),   
+      axis.title = element_text(size = 16),                            
+      axis.text = element_text(size = 16) 
+    )
+  
+  # Save the plot with dynamic filename and 300 dpi
+  ggsave(
+    filename = paste0("P:/3022054.01/projects/linschl/results/figures/CTQ_NEMESIS_histograms/", name, "_PA.png"),
+    plot = plots[[name]],
+    dpi = 300,
+    width = 6,   # Adjust width (in inches)
+    height = 5   # Adjust height (in inches)
+  )
+}
+
+#plots$HBS
+#plots$IMAGEN
+#plots$BeCOME
+#plots$MIND-Set
+#plots$Stratify
+```
+
+```{r}
+# SEXUAL ABUSE
+
+plots <- list()
+
+for (name in names(datasets)) {
+  plots[[name]] <- ggplot(datasets[[name]], aes(x = as.numeric(sexual_abuse_scaled))) +
+    geom_bar(
+      aes(y = stat(count / sum(count))),
+      fill = "darkgray",   # Light gray bars
+      color = "white"       # White borders
+    ) +
+    labs(x = paste("Sexual Abuse", name), y = "Proportion") +
+    scale_x_continuous(expand = expansion(mult = c(0,.1)), breaks = seq(0, 1, 0.25), limits = c(-0.125, 1.125)) +  
+    scale_y_continuous(expand = expansion(mult = c(0, .1)), limits = c(0, 0.95)) + 
+    theme(
+      panel.background = element_blank(),
+      panel.grid = element_blank(),
+      axis.line = element_line(color = "black"),  # Corrected placement of '+'
+      text = element_text(family = "Calibri Light", size = 16),   
+      axis.title = element_text(size = 16),                            
+      axis.text = element_text(size = 16) 
+    )
+  
+  # Save the plot with dynamic filename and 300 dpi
+  ggsave(
+    filename = paste0("P:/3022054.01/projects/linschl/results/figures/CTQ_NEMESIS_histograms/", name, "_SA.png"),
+    plot = plots[[name]],
+    dpi = 300,
+    width = 6,   # Adjust width (in inches)
+    height = 5   # Adjust height (in inches)
+  )
+}
+
+#plots$HBS
+#plots$IMAGEN
+#plots$BeCOME
+#plots$MIND-Set
+#plots$Stratify
+```

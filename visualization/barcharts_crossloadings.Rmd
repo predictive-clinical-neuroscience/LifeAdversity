@@ -1,0 +1,121 @@
+---
+title: "barcharts_crossloadings"
+output: html_document
+date: "2025-05-28"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r setup, include=FALSE}
+library(readxl)
+library(dplyr)
+library(tidyverse)
+library(cowplot)
+library(ggplot2)
+library(extrafont)
+```
+
+
+```{r}
+# load and plot the data
+
+dataset <- "mindset_v1"
+
+if (dataset == "mindset_v1") {
+  df <- read.csv2("P:/3022054.01/projects/linschl/results/CCA/Run_4/mindset_v1_nopos/R2_total_test.csv", sep = ",")
+  fill <- c("#648FFF", "#785EF0", "#FE6100","#DC267F")
+  x_labels <- c("Negative\nValence", "Social", "Cognition", "Arousal/\nInhibition")
+  y_lim <- c(0, 0.2)
+} else if (dataset == "mindset_v2") {
+  df <- read.csv2("P:/3022054.01/projects/linschl/results/CCA/Run_4/mindset_v2_nopos/R2_total_test.csv", sep = ",")
+  fill <- c("#648FFF", "#785EF0", "#FE6100","#DC267F") 
+  x_labels <- c("Negative\nValence", "Social", "Cognition", "Arousal/\nInhibition")
+  y_lim <- c(0, 0.2)
+} else if (dataset == "mindset_nocogn_v1") {
+  df <- read.csv2("P:/3022054.01/projects/linschl/results/CCA/Run_4/mindset_nocogn_v1_nopos/R2_total_test.csv", sep = ",")
+  fill <- c("#648FFF", "#785EF0","#DC267F")  
+  x_labels <- c("Negative\nValence","Social","Arousal/\nInhibition")
+  y_lim <- c(0, 0.2)
+} else if (dataset == "mindset_nocogn_v2") {
+  df <- read.csv2("P:/3022054.01/projects/linschl/results/CCA/Run_4/mindset_nocogn_v2_nopos/R2_total_test.csv", sep = ",")
+  fill <- c("#648FFF", "#785EF0", "#DC267F")
+  x_labels <- c("Negative\nValence","Social","Arousal/\nInhibition")
+  y_lim <- c(0, 0.2)
+} else if (dataset == "become_v1") {
+  df <- read.csv2("P:/3022054.01/projects/linschl/results/CCA/Run_5/become_v1_nopos/R2_total_test.csv", sep = ",")
+  fill <- c("#648FFF", "#DC267F","#ff5e00")
+  x_labels <- c("Negative\nValence", "Arousal", "Somatic\nAnxiety")
+  y_lim <- c(0, 0.2)
+} else if (dataset == "become_v2") {
+  df <- read.csv2("P:/3022054.01/projects/linschl/results/CCA/Run_5/become_v2_nopos/R2_total_test.csv", sep = ",")
+  fill <- c("#648FFF", "#DC267F","#ff5e00")
+  x_labels <- c("Negative\nValence", "Arousal", "Somatic\nAnxiety")
+  y_lim <- c(0, 0.2)
+} else if (dataset == "ima_str_v1") {
+  df <- read.csv2("P:/3022054.01/projects/linschl/results/CCA/Run_4/ima_str_v1_nopos/R2_total_test.csv", sep = ",")
+  fill <- c("#648FFF", "#785EF0", "#DC267F")
+  x_labels <- c("Negative\nValence", "Social", "Arousal/\nInhibition")
+  y_lim <- c(0, 0.2)
+} else if (dataset == "ima_str_v2") {
+  df <- read.csv2("P:/3022054.01/projects/linschl/results/CCA/Run_4/ima_str_v2_nopos/R2_total_test.csv", sep = ",")
+  fill <- c("#648FFF", "#785EF0", "#DC267F")
+  x_labels <- c("Negative\nValence", "Social", "Arousal/\nInhibition")
+  y_lim <- c(0, 0.2)
+}
+  
+df <- as.matrix(sapply(df, as.numeric))  
+
+
+# calculcate mean and sd
+pop_sd <- function(x) sqrt(mean((x - mean(x))^2))
+std_totalR2 <- apply(df, 2, pop_sd)
+mean_totalR2 <- colMeans(df)
+
+
+mean_df <- data.frame(
+  variable = names(mean_totalR2),
+  value = as.numeric(mean_totalR2),
+  sd = as.numeric(std_totalR2)
+)
+
+# BAR PLOTS
+
+p <- ggplot(mean_df, aes(x = variable, y = value, fill = variable)) +
+  geom_bar(stat = "identity", width = 0.7) +
+  geom_errorbar(aes(ymin = value - sd, ymax = value + sd), width = 0.1 ) +
+  scale_fill_manual(values = fill) +
+  scale_x_discrete(labels = x_labels) + 
+  labs(x = element_blank(), y = element_blank(), title = element_blank()) +
+  coord_cartesian(ylim = y_lim) + 
+  #theme_minimal(base_size = 14) +
+  theme(legend.position = "none")+
+  theme(panel.grid = element_blank(), #no grid
+        panel.border = element_blank(), #no border around the entire plot
+        axis.line.x.bottom = element_line(color = 'black'), #bottom border
+        axis.line.y.left   = element_line(color = 'black'), #left border
+        axis.line.y.right  = element_blank(), #no right border
+        #legend.title = element_blank(),
+        #legend.position = "none",
+        panel.background = element_rect(fill = "white"),
+        #aspect.ratio = 1/1,
+        axis.text.x = element_text(angle = 0, size = 12, family = "Calibri Light"),
+        axis.text.y = element_text(angle = 0, size = 12, family = "Calibri Light"),
+        text=element_text(size=14, 
+        family="Calibri Light"))
+p
+
+ ggsave(
+ plot = p,
+ filename = paste0("P:/3022054.01/projects/linschl/results/figures/CCA_cross_loadings/same_ylim/", dataset, ".png"),
+ dpi = 300,
+ width = 4,
+ height = 4
+ )
+
+ggsave(p, filename = paste0("P:/3022054.01/projects/linschl/results/figures/CCA_cross_loadings",dataset,".png"))
+
+```
+
+
